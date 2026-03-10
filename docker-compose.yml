@@ -6,7 +6,7 @@ services:
     container_name: haberfoni_bot
     restart: always
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:-mysql://haberfoni_user:Haberfoni_Secur3!DB@db:3306/haberfoni}
     networks:
       - app_network
 

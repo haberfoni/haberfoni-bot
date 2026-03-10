@@ -1,0 +1,38 @@
+[
+  {
+    "index": 7,
+    "url": "/tr/info/infographic/0",
+    "title": "infografik (current)",
+    "badges": [],
+    "classes": "no-class",
+    "hasFotograf": false,
+    "hasVideo": false,
+    "hasInfografik": false,
+    "hasMedya": false,
+    "cardHTML": "N/A"
+  },
+  {
+    "index": 9,
+    "url": "https://www.aa.com.tr/tr/vgc/video-galeri/0",
+    "title": "Video",
+    "badges": [],
+    "classes": "no-class",
+    "hasFotograf": false,
+    "hasVideo": false,
+    "hasInfografik": false,
+    "hasMedya": false,
+    "cardHTML": "N/A"
+  },
+  {
+    "index": 10,
+    "url": "https://www.aa.com.tr/tr/pgc/foto-galeri/0",
+    "title": "Fotoğraf",
+    "badges": [],
+    "classes": "no-class",
+    "hasFotograf": false,
+    "hasVideo": false,
+    "hasInfografik": false,
+    "hasMedya": false,
+    "cardHTML": "N/A"
+  }
+]

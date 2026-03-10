@@ -1,0 +1,20 @@
+{
+  "name": "haberfoni-bot",
+  "version": "1.0.0",
+  "description": "News scraper bot",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.3.1",
+    "mysql2": "^3.9.0",
+    "node-cron": "^3.0.3",
+    "rss-parser": "^3.13.0",
+    "xml2js": "^0.6.0"
+  }
+}

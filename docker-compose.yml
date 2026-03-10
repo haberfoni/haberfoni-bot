@@ -13,3 +13,4 @@ services:
 networks:
   app_network:
     external: true
+    name: haberfoni-backend_app_network

@@ -91,13 +91,24 @@ export async function scrapeIHAArticle(url, targetCategory) {
         let imageUrl = null;
         const candidateSelectors = [
             $('meta[property="og:image"]').attr('content'),
+            $('meta[name="twitter:image"]').attr('content'),
+            $('.news-detail-image img').attr('data-src'),
+            $('.news-detail-image img').attr('src'),
+            $('.news-detail__content img').first().attr('data-src'),
+            $('.news-detail__content img').first().attr('src'),
+            $('.news-content img').first().attr('data-src'),
+            $('.news-content img').first().attr('src'),
+            $('div.gallery-img img').first().attr('data-src'),
             $('div.gallery-img img').first().attr('src'),
+            $('figure img').first().attr('data-src'),
             $('figure img').first().attr('src'),
+            $('.article-img img').first().attr('data-src'),
             $('.article-img img').first().attr('src'),
+            $('article img').first().attr('data-src'),
             $('article img').first().attr('src'),
         ];
         for (const candidate of candidateSelectors) {
-            if (candidate && !isBlockedImage(candidate)) {
+            if (candidate && !isBlockedImage(candidate) && !candidate.includes('base64')) {
                 imageUrl = candidate.startsWith('http') ? candidate : 'https://www.iha.com.tr' + candidate;
                 break;
             }
@@ -190,28 +201,21 @@ export async function scrapeIHA() {
 
                 // Check if URL is RSS or HTML
                 if (mapping.source_url.includes('/rss/')) {
-                    // RSS scraping
+                    // RSS scraping - instead of saving raw RSS, fetch the actual article for photos
                     const feed = await parser.parseURL(mapping.source_url);
+                    const linksArray = feed.items.map(item => item.link).slice(0, 10);
 
-                    for (const item of feed.items) {
-                        let imageUrl = null;
-                        if (item.enclosure && item.enclosure.url && item.enclosure.type.startsWith('image')) {
-                            imageUrl = item.enclosure.url;
+                    for (const articleUrl of linksArray) {
+                        try {
+                            const article = await scrapeIHAArticle(articleUrl, mapping.target_category);
+                            if (article) {
+                                const success = await saveNews(article);
+                                if (success) count++;
+                            }
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        } catch (err) {
+                            console.error(`  Error scraping article ${articleUrl}:`, err.message);
                         }
-
-                        const newsItem = {
-                            title: item.title,
-                            summary: item.contentSnippet ? item.contentSnippet.substring(0, 200) : '',
-                            content: item.content || item.contentSnippet,
-                            original_url: item.link,
-                            image_url: imageUrl,
-                            source: 'IHA',
-                            category: mapping.target_category,
-                            keywords: ''
-                        };
-
-                        const success = await saveNews(newsItem);
-                        if (success) count++;
                     }
                 } else {
                     // HTML scraping

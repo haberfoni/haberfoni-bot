@@ -13,8 +13,8 @@ index.js başlar
   ├── runAll() → anlık çalışır (başlangıçta)
   ├── cron (her 15 dakika) → runAll()
   └── setInterval (her 10 sn) → checkCommands()
-                                    └── bot_commands tablosunu okur
-                                        FORCE_RUN komutu varsa → runAll()
+                                     └── bot_commands tablosunu okur
+                                         FORCE_RUN komutu varsa → runAll()
 ```
 
 `runAll()` sırasıyla çalıştırır: scrapeIHA → scrapeAA → scrapeDHA
@@ -87,5 +87,11 @@ Her scraper:
 # External network ile backend'in MySQL'ini kullanır
 ```
 
-**Önemli:** Bot, backend'in `docker-compose.yml`'ındaki `db` servisine bağlanır.  
-İki container'ın aynı Docker network'ünde olması gerekir.
+---
+
+## Son Geliştirmeler (25.03.2026)
+
+### Scraper & Medya Yönetimi
+- **Resim Senkronizasyonu:** İndirilen görseller artık Docker host üzerinden frontend ile paylaşımlı klasöre (`public/uploads`) kaydediliyor.
+- **DHA Güncellemesi:** DHA'nın yeni yapısına uygun seçiciler ve meta-detay çekme mantığı eklendi.
+- **Hata Toleransı:** Eksik indirilen görseller için dosya kontrol mekanizması kuruldu.

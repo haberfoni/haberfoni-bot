@@ -40,15 +40,23 @@ async function scrapeAAHTML(url, targetCategory) {
 
         // Extract article links from the page
         // AA uses links in format: /tr/gundem/article-title/article-id
+        const allowedPathPatterns = [
+            /\/tr\/[^\/]+\/[^\/]+\/\d+$/,      // standard news
+            /\/tr\/video\//,                    // video gallery URLs
+            /\/tr\/foto-galeri\//,              // photo gallery URLs
+            /\/tr\/pgc\//,                      // photo galleries
+            /\/tr\/vgc\//,                      // video galleries
+            /fotoraf-\d+$/,
+            /video-\d+$/
+        ];
+
         $('a[href*="/tr/"]').each((i, elem) => {
             const href = $(elem).attr('href');
-            if (href && href.match(/\/tr\/[^\/]+\/[^\/]+\/\d+$/)) {
-                // Filter out media content types (photo galleries, videos, infographics)
-                // AA media URLs contain: /pgc/ (photo), /vgc/ (video), /info/infographic/
-                const isMediaContent = /\/(pgc|vgc|info\/infographic)\//.test(href) ||
-                    /\/(fotoraf|video|infografik)-\d+$/.test(href);
+            if (href && allowedPathPatterns.some(p => p.test(href))) {
+                // Sadece infografikleri filtrele, galeri ve videoları çekmeye devam et
+                const isInfographic = /\/info\/infographic\//.test(href) || /\/infografik-\d+$/.test(href);
 
-                if (!isMediaContent) {
+                if (!isInfographic) {
                     // Make absolute URL
                     const fullUrl = href.startsWith('http') ? href : `https://www.aa.com.tr${href}`;
                     articleLinks.add(fullUrl);
@@ -111,14 +119,28 @@ async function scrapeAAArticle(url, targetCategory) {
         const summary = summaryRaw.replace(/\s+/g, ' ').trim();
 
         // Extract image
-        const imageUrlRaw = $('meta[property="og:image"]').attr('content') ||
-            $('article img').first().attr('src') ||
-            null;
-        const imageUrl = isBlockedImage(imageUrlRaw) ? null : imageUrlRaw;
+        let imageUrl = null;
+        const candidates = [
+            $('meta[property="og:image"]').attr('content'),
+            $('meta[name="twitter:image"]').attr('content'),
+            $('.detay-icerik img').first().attr('data-src'),
+            $('.detay-icerik img').first().attr('src'),
+            $('article img').first().attr('data-src'),
+            $('article img').first().attr('src'),
+            $('.news-detail-image img').attr('data-src'),
+            $('.news-detail-image img').attr('src'),
+        ];
+
+        for (const c of candidates) {
+            if (c && !isBlockedImage(c) && !c.includes('base64')) {
+                imageUrl = c.startsWith('http') ? c : (c.startsWith('/') ? `https://www.aa.com.tr${c}` : c);
+                break;
+            }
+        }
 
 
-        // Extract content - try to find article body
-        let contentEl = $('.detay-icerik');
+        // Extract content - try to find article body or gallery container
+        let contentEl = $('.detay-icerik, .fotogaleri, .video-gallery, .gallery-container, #gallery-container, .foto-galeri, .vgc-video, .video-detay');
         if (contentEl.length === 0) contentEl = $('article');
 
         // Strip only ads/share/tag junk — keep iframe and video!
@@ -243,28 +265,21 @@ export async function scrapeAA() {
 
                 // Check if URL is RSS or HTML
                 if (mapping.source_url.includes('/rss/')) {
-                    // RSS scraping
+                    // RSS scraping - fetch full articles instead of using raw RSS
                     const feed = await parser.parseURL(mapping.source_url);
+                    const linksArray = feed.items.map(item => item.link).slice(0, 10);
 
-                    for (const item of feed.items) {
-                        let imageUrl = null;
-                        if (item.enclosure && item.enclosure.url && item.enclosure.type.startsWith('image')) {
-                            imageUrl = item.enclosure.url;
+                    for (const articleUrl of linksArray) {
+                        try {
+                            const article = await scrapeAAArticle(articleUrl, mapping.target_category);
+                            if (article) {
+                                const success = await saveNews(article);
+                                if (success) count++;
+                            }
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        } catch (err) {
+                            console.error(`  Error scraping article ${articleUrl}:`, err.message);
                         }
-
-                        const newsItem = {
-                            title: item.title,
-                            summary: item.contentSnippet ? item.contentSnippet.replace(/\s+/g, ' ').trim().substring(0, 200) : '',
-                            content: (item.content || item.contentSnippet || '').replace(/\s+/g, ' ').trim(),
-                            original_url: item.link,
-                            image_url: imageUrl,
-                            source: 'AA',
-                            category: mapping.target_category,
-                            keywords: ''
-                        };
-
-                        const success = await saveNews(newsItem);
-                        if (success) count++;
                     }
                 } else {
                     // HTML scraping

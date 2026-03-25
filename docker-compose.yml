@@ -10,6 +10,8 @@ services:
     networks:
       - app_network
 
+    volumes:
+      - ../public/uploads:/public/uploads
 networks:
   app_network:
     external: true

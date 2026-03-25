@@ -120,6 +120,26 @@ export async function scrapeDHA() {
                         $detail('.news-detail-tags').remove();
                         $detail('h1').remove(); // Remove title from content area
 
+                        // Extract image
+                        if (!item.image_url || isBlockedImage(item.image_url)) {
+                             const candidates = [
+                                $detail('meta[property="og:image"]').attr('content'),
+                                $detail('meta[name="twitter:image"]').attr('content'),
+                                $detail('.news-detail-image img').attr('data-src'),
+                                $detail('.news-detail-image img').attr('src'),
+                                $detail('.nd-article-content img').first().attr('data-src'),
+                                $detail('.nd-article-content img').first().attr('src'),
+                                $detail('article img').first().attr('data-src'),
+                                $detail('article img').first().attr('src'),
+                            ];
+                            for (const c of candidates) {
+                                if (c && !isBlockedImage(c) && !c.includes('base64')) {
+                                    item.image_url = c.startsWith('http') ? c : `https://www.dha.com.tr${c}`;
+                                    break;
+                                }
+                            }
+                        }
+
                         // Remove summary/spot from content area to avoid duplication
                         if (summary) {
                             $detail('h2').filter((i, el) => $detail(el).text().trim() === summary).remove();

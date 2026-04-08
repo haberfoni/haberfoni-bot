@@ -57,12 +57,12 @@ async function shareNewsItem(item) {
                 if (absoluteImgUrl) {
                     res = await axios.post(`https://api.telegram.org/bot${telegramToken}/sendPhoto`, { 
                         chat_id: telegramChatId, photo: absoluteImgUrl, 
-                        caption: `<b>${item.title}</b>\n\n👉 <a href="${realNewsUrl}">Devamı</a>`, parse_mode: 'HTML' 
+                        caption: `<b>${item.title}</b>\n\n👉 Devamı: ${realNewsUrl}`, parse_mode: 'HTML' 
                     });
                 } else {
                     res = await axios.post(`https://api.telegram.org/bot${telegramToken}/sendMessage`, { 
                         chat_id: telegramChatId, 
-                        text: `<b>${item.title}</b>\n\n👉 <a href="${realNewsUrl}">Devamı</a>`, parse_mode: 'HTML' 
+                        text: `<b>${item.title}</b>\n\n👉 Devamı: ${realNewsUrl}`, parse_mode: 'HTML' 
                     });
                 }
                 if (res.data.ok) { socialPosts.telegram = 'shared'; updated = true; }

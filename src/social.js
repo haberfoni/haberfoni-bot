@@ -7,7 +7,20 @@ export async function syncSocialMedia() {
     try {
         const isActive = await getSettingByKey('is_social_auto_post_active');
         if (isActive !== 'true') return;
-        const [news] = await pool.execute('SELECT id, title, summary, image_url, slug, social_posts FROM news WHERE is_active = 1 AND published_at IS NOT NULL AND (social_posts IS NULL OR social_posts = "" OR social_posts = "{}") ORDER BY published_at DESC LIMIT 3');
+        const [news] = await pool.execute(`
+            SELECT id, title, summary, image_url, slug, social_posts 
+            FROM news 
+            WHERE is_active = 1 
+              AND published_at IS NOT NULL 
+              AND (
+                social_posts IS NULL 
+                OR social_posts = "" 
+                OR social_posts = "{}" 
+                OR NOT (JSON_EXTRACT(social_posts, "$.telegram") = "shared" AND JSON_EXTRACT(social_posts, "$.meta") = "shared")
+              )
+            ORDER BY published_at DESC 
+            LIMIT 5
+        `);
         for (const item of news) { await shareNewsItem(item); await delay(60000); }
     } catch (error) { console.error('[SOCIAL] Sync Error:', error.message); }
 }
@@ -50,6 +63,9 @@ async function shareNewsItem(item) {
                 : `https://api-haberfoni.kaprofis.com/${absoluteImgUrl}`;
         }
 
+        // HTML etiketlerini temizle (Telegram parse error önlemek için)
+        const cleanTitle = item.title ? item.title.replace(/<[^>]*>/g, '').trim() : '';
+
         // Telegram
         if (telegramToken && telegramChatId && !socialPosts.telegram) {
             try {
@@ -57,12 +73,12 @@ async function shareNewsItem(item) {
                 if (absoluteImgUrl) {
                     res = await axios.post(`https://api.telegram.org/bot${telegramToken}/sendPhoto`, { 
                         chat_id: telegramChatId, photo: absoluteImgUrl, 
-                        caption: `<b>${item.title}</b>\n\n👉 Devamı: ${realNewsUrl}`, parse_mode: 'HTML' 
+                        caption: `<b>${cleanTitle}</b>\n\n👉 Devamı: ${realNewsUrl}`, parse_mode: 'HTML' 
                     });
                 } else {
                     res = await axios.post(`https://api.telegram.org/bot${telegramToken}/sendMessage`, { 
                         chat_id: telegramChatId, 
-                        text: `<b>${item.title}</b>\n\n👉 Devamı: ${realNewsUrl}`, parse_mode: 'HTML' 
+                        text: `<b>${cleanTitle}</b>\n\n👉 Devamı: ${realNewsUrl}`, parse_mode: 'HTML' 
                     });
                 }
                 if (res.data.ok) { socialPosts.telegram = 'shared'; updated = true; }

@@ -139,3 +139,8 @@ Frontend ve Backend koordinasyonu kapsamında botun ürettiği verilerin doğrul
 ### 1. Medya Yolu Doğrulaması
 - Botun `news` tablosuna kaydettiği `/uploads/news/` formatındaki yolların fiziksel dosyalama yapısıyla tam uyumlu olduğu doğrulandı.
 - Manuel kontrollerde hem ana `uploads` hem de `uploads/news` klasöründeki dosyaların erişilebilir olduğu ve botun doğru klasörlemeye devam ettiği teyit edildi.
+
+### 2. Sosyal Gönderi Zinciri İzolasyonu ve Onarımı (08.04.2026)
+- **Telegram URL Onarımı:** Facebook gibi Telegram'ın API (sendPhoto) servisine de relative path (`/uploads/...`) yerine tam path (absolute URL) ulaştırılacak şekilde `social.js` algoritması değiştirildi.
+- **Sequential Block Crash Koruması:** Eskiden bir haberde resim yoksa Telegram hata fırlatıp JavaScript akışını kırıyordu. Bu sebeple zincirleme olarak Facebook paylaşımları da iptal oluyordu.
+- **Fail-safe Yöntemler:** Telegram ve Facebook için ayrı ayrı `try-catch` blokları (hata izolasyonu) eklendi. Ayrıca fotoğrafsız haberlerin Telegram'a sorunsuz şekilde gitmesi için `sendMessage` (yazılı mesaj) fallback mimarisi eklendi. Artık bir platformdaki arıza, diğer platformdaki paylaşımı sabote etmiyor.

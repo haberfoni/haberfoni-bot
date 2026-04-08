@@ -1,4 +1,4 @@
-import { saveNews } from '../db.js';
+import { saveNews, getBotMappings, updateBotMappingStatus } from '../db.js';
 import Parser from 'rss-parser';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
@@ -224,6 +224,12 @@ async function scrapeAAArticle(url, targetCategory) {
             }
         }
 
+        // Strict Check: Don't save news without an image
+        if (!imageUrl) {
+            console.log(`    [AA] Skipping article (no image): ${title.substring(0, 50)}...`);
+            return null;
+        }
+
         return {
             title: title,
             summary: summary, // Full summary, no truncation
@@ -246,9 +252,7 @@ async function scrapeAAArticle(url, targetCategory) {
 export async function scrapeAA() {
     console.log('--- Starting AA Scrape ---');
     try {
-        const mappingsModule = await import('../db.js');
-        const mappings = await mappingsModule.getBotMappings('AA');
-        const { updateBotMappingStatus } = mappingsModule;
+        const mappings = await getBotMappings('AA');
 
         if (!mappings || mappings.length === 0) {
             console.log('--- AA Scrape Skipped (No mappings) ---');

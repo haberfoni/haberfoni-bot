@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { saveNews } from '../db.js';
+import { saveNews, getBotMappings, updateBotMappingStatus } from '../db.js';
 
 const BLOCKED_IMAGE_PATTERNS = [
     'bip.png', 'bip.jpg',
@@ -21,9 +21,7 @@ function isBlockedImage(url) {
 export async function scrapeDHA() {
     console.log('--- Starting DHA Scrape ---');
     try {
-        const mappingsModule = await import('../db.js');
-        const mappings = await mappingsModule.getBotMappings('DHA');
-        const { updateBotMappingStatus } = mappingsModule;
+        const mappings = await getBotMappings('DHA');
 
         if (!mappings || mappings.length === 0) {
             console.log('--- DHA Scrape Skipped (No mappings) ---');
@@ -298,6 +296,12 @@ export async function scrapeDHA() {
                             summary: summary,
                             author: author, // Author or null/undefined (database will handle it)
                         };
+
+                        // Strict Check: Don't save news without an image
+                        if (!newsItem.image_url) {
+                            console.log(`    [DHA] Skipping article (no image): ${newsItem.title.substring(0, 50)}...`);
+                            continue;
+                        }
 
                         const success = await saveNews(newsItem);
                         if (success) count++;

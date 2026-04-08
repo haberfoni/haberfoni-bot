@@ -1,6 +1,8 @@
 import { scrapeIHA } from './src/scrapers/iha.js';
 import { scrapeAA } from './src/scrapers/aa.js';
 import { scrapeDHA } from './src/scrapers/dha.js';
+import './src/socialSubscriber.js'; // Real-time social sharing
+import { syncSocialMedia } from './src/social.js';
 import dotenv from 'dotenv';
 import cron from 'node-cron';
 import { db } from './src/db.js'; // Import shared pool
@@ -69,5 +71,11 @@ async function runAll() {
     try {
         await scrapeDHA();
     } catch (e) { console.error('DHA Error:', e); }
+
+    console.log('Starting social sync...');
+    try {
+        await syncSocialMedia();
+    } catch (e) { console.error('Social Sync Error:', e); }
+
     console.log('Scrape cycle finished.');
 }

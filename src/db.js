@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import { EventEmitter } from 'events';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -41,6 +42,7 @@ if (process.env.DATABASE_URL) {
 }
 
 const pool = mysql.createPool(dbConfig);
+export const dbEvents = new EventEmitter();
 
 export const db = pool; // Export generic pool if needed
 
@@ -153,6 +155,7 @@ export async function saveNews(newsItem) {
                     [newsItem.content, newsItem.summary, newsItem.image_url, existing.id]
                 );
                 console.log(`[UPDATE] Success.`);
+                dbEvents.emit('newsSaved', { id: existing.id, title: newsItem.title, type: 'update' });
                 return true;
             } else if (isExistingShort && isNewLong) {
                 console.log(`[UPDATE] Updating content for: ${newsItem.title}`);
@@ -198,26 +201,28 @@ export async function saveNews(newsItem) {
         `;
 
         const params = [
-            newsItem.title,
-            slug,
-            newsItem.summary,
-            newsItem.content,
-            newsItem.image_url,
-            categorySlug,
-            categoryId,
-            newsItem.original_url,
-            newsItem.source,
-            newsItem.author,
+            newsItem.title || null,
+            slug || null,
+            newsItem.summary || null,
+            newsItem.content || null,
+            newsItem.image_url || null,
+            categorySlug || 'gundem',
+            categoryId || null,
+            newsItem.original_url || null,
+            newsItem.source || 'BOT',
+            newsItem.author || null,
             shouldPublish ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null,
             true, // is_active
-            newsItem.title, // seo_title
-            newsItem.summary, // seo_description
+            newsItem.title || null, // seo_title
+            newsItem.summary || null, // seo_description
             newsItem.keywords || '' // seo_keywords
         ];
 
-        await pool.execute(query, params);
+        const [result] = await pool.execute(query, params);
+        const newsId = result.insertId;
 
         console.log(`[SAVE] Saved (${shouldPublish ? 'Published' : 'Draft'}): ${newsItem.title}`);
+        dbEvents.emit('newsSaved', { id: newsId, title: newsItem.title, type: 'insert' });
         return true;
 
     } catch (error) {
@@ -251,5 +256,23 @@ export async function updateBotMappingStatus(sourceUrl, status, count) {
         console.log(`Updated status for ${sourceUrl}: ${status}`);
     } catch (error) {
         console.error('EXCEPTION updating mapping status:', error);
+    }
+}
+
+/**
+ * Gets a specific setting value by key from site_settings table
+ * @param {string} key 
+ * @returns {Promise<string|null>}
+ */
+export async function getSettingByKey(key) {
+    try {
+        const [rows] = await pool.execute(
+            'SELECT value FROM site_settings WHERE `key` = ? LIMIT 1',
+            [key]
+        );
+        return rows.length > 0 ? rows[0].value : null;
+    } catch (error) {
+        console.error(`Error fetching setting ${key}:`, error);
+        return null;
     }
 }

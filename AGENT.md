@@ -95,3 +95,47 @@ Her scraper:
 - **Resim Senkronizasyonu:** İndirilen görseller artık Docker host üzerinden frontend ile paylaşımlı klasöre (`public/uploads`) kaydediliyor.
 - **DHA Güncellemesi:** DHA'nın yeni yapısına uygun seçiciler ve meta-detay çekme mantığı eklendi.
 - **Hata Toleransı:** Eksik indirilen görseller için dosya kontrol mekanizması kuruldu.
+
+---
+
+## 🛠️ Bot İyileştirmeleri Özeti (26.03.2026)
+
+Sunucu restorasyonu sırasında botun stabilitesini ve verimliliğini artırmak için şu adımlar atıldı:
+
+### 1. Zengin İçerik ve HTML Desteği
+- **HTML Parsing:** Tüm scraper'lar (AA, İHA, DHA) haber içeriğini artık sadece metin olarak değil, HTML formatında (`.html()`) çekiyor. Bu sayede haber içindeki görseller, hizalamalar ve orijinal mizanpaj korunuyor.
+- **DHA Scraper:** Ajansın güncellenen DOM yapısına göre CSS seçicileri revize edildi ve meta-tag fallback mekanizması güçlendirildi.
+
+### 2. Performans ve Sunucu Dostu Çalışma (Economic Mode)
+- **Haber Sınırı:** Her bot döngüsünde (15 dk) işlenen maksimum haber sayısı **10** ile sınırlandırıldı. Bu, sunucunun CPU ve RAM yükünü stabilize eder.
+- **AI Gecikmesi (Throttling):** AI rewrite süreçleri arasına **5.5 saniye** sabit gecikme eklendi. Bu hem AI provider (Gemini/Groq) limitlerini aşmamayı hem de sunucunun nefes almasını sağlar.
+
+### 3. Medya ve Network
+- **Alt Kategorizasyon:** Bot tarafından indirilen medya dosyaları artık `/uploads` altında `news`, `gallery`, `video` gibi alt klasörlere otomatik olarak dağıtılıyor.
+- **Konteyner Uyumu:** `haberfoni_network` üzerinden DB bağlantısı stabilize edildi ve bağlantı kopmalarına karşı otomatik retry eklendi.
+
+---
+
+## 🚀 Sosyal Medya Paylaşım & Meta-Proxy (26.03.2026)
+
+Haberlerin sosyal medyada (Facebook, Telegram) profesyonel "Link Card" görünümüyle paylaşılması için Meta-Proxy altyapısı kuruldu.
+
+### 1. Meta-Proxy (ShareController)
+- **Problem:** Vite SPA yapısında sunucu taraflı meta tag (OpenGraph) desteği olmadığı için Facebook resimli kart oluşturamıyordu.
+- **Çözüm:** Backend'de `api-haberfoni.kaprofis.com/servis/share/:id` endpoint'i üzerinden statik OG tagleri sunan bir köprü oluşturuldu.
+- **Yönlendirme:** Facebook botları metayı okurken, gerçek kullanıcılar otomatik olarak `haberfoni.kaprofis.com/haber/...` sayfasına JS/Meta-Refresh ile yönlendiriliyor.
+
+### 2. Sosyal Paylaşım Sistemi
+- **Sequential Sharing:** Telegram ve Facebook paylaşımları artık haber kaydedildiği an anlık olarak tetikleniyor. Facebook'un aynı haberi görsel galerisine dönüştürmemesi için paylaşımlar arasına 60 saniye gecikme eklendi.
+- **Link Post Modu:** Facebook paylaşımları `me/feed` üzerinden fotoğrafsız but "Link" gönderisi olarak yapılıyor, böylece Proxy URL üzerinden tam kart görünümü elde ediliyor.
+- **Dinamik Konfigürasyon:** Paylaşım linkleri artık Paneldeki `social_share_proxy_url` ayarını temel alır, kodda sabit (hardcoded) değildir.
+
+---
+
+## 🛠️ Bot Koordinasyon Özeti (08.04.2026)
+
+Frontend ve Backend koordinasyonu kapsamında botun ürettiği verilerin doğruluğu teyit edildi:
+
+### 1. Medya Yolu Doğrulaması
+- Botun `news` tablosuna kaydettiği `/uploads/news/` formatındaki yolların fiziksel dosyalama yapısıyla tam uyumlu olduğu doğrulandı.
+- Manuel kontrollerde hem ana `uploads` hem de `uploads/news` klasöründeki dosyaların erişilebilir olduğu ve botun doğru klasörlemeye devam ettiği teyit edildi.

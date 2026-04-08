@@ -1,4 +1,4 @@
-import { saveNews } from '../db.js';
+import { saveNews, getBotMappings, updateBotMappingStatus } from '../db.js';
 import Parser from 'rss-parser';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
@@ -163,6 +163,12 @@ export async function scrapeIHAArticle(url, targetCategory) {
             if (match) author = match[1].trim();
         }
 
+        // Strict Check: Don't save news without an image
+        if (!imageUrl) {
+            console.log(`    [IHA] Skipping article (no image): ${title.substring(0, 50)}...`);
+            return null;
+        }
+
         return {
             title,
             summary: summary.substring(0, 200) + ' - İhlas Haber Ajansı',
@@ -182,9 +188,7 @@ export async function scrapeIHAArticle(url, targetCategory) {
 export async function scrapeIHA() {
     console.log('--- Starting IHA Scrape ---');
     try {
-        const mappingsModule = await import('../db.js');
-        const mappings = await mappingsModule.getBotMappings('IHA');
-        const { updateBotMappingStatus } = mappingsModule;
+        const mappings = await getBotMappings('IHA');
 
         if (!mappings || mappings.length === 0) {
             console.log('--- IHA Scrape Skipped (No mappings) ---');

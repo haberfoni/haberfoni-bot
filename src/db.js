@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { rewriteNews } from './ai.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -193,29 +194,67 @@ export async function saveNews(newsItem) {
         const categorySlug = newsItem.category || 'gundem';
         const categoryId = await getCategoryIdBySlug(categorySlug);
 
+        // 3.5 AI Rewrite if enabled
+        let finalTitle = newsItem.title;
+        let finalSummary = newsItem.summary;
+        let finalContent = newsItem.content;
+        let author = newsItem.author;
+        let aiModel = null;
+        let seoTitle = newsItem.title;
+        let seoDescription = newsItem.summary;
+        let seoKeywords = newsItem.keywords || '';
+        let titleEn = newsItem.title_en;
+        let summaryEn = newsItem.summary_en;
+        let contentEn = newsItem.content_en;
+
+        if (settings && settings.use_ai_rewrite) {
+            console.log(`[AI] Attempting rewrite for: ${newsItem.title}`);
+            const rewritten = await rewriteNews(newsItem.title, newsItem.summary, newsItem.content);
+            if (rewritten) {
+                finalTitle = rewritten.title;
+                finalSummary = rewritten.summary;
+                finalContent = rewritten.content;
+                seoTitle = rewritten.seo_title;
+                seoDescription = rewritten.seo_description;
+                seoKeywords = rewritten.seo_keywords;
+                titleEn = rewritten.title_en;
+                summaryEn = rewritten.summary_en;
+                contentEn = rewritten.content_en;
+                author = 'Yapay Zeka Editörü';
+                aiModel = rewritten.model;
+                console.log(`[AI] SUCCESS: Rewritten with ${aiModel}`);
+            } else {
+                console.warn(`[AI] FAILED or SKIPPED for: ${newsItem.title}`);
+            }
+        }
+
         // 4. Insert
         const query = `
             INSERT INTO news 
-            (title, slug, summary, content, image_url, category, category_id, original_url, source, author, published_at, is_active, seo_title, seo_description, seo_keywords, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
+            (title, slug, summary, content, image_url, category, category_id, original_url, source, author, published_at, is_active, seo_title, seo_description, seo_keywords, title_en, summary_en, content_en, ai_model, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
         `;
 
         const params = [
-            newsItem.title || null,
+            finalTitle || null,
             slug || null,
-            newsItem.summary || null,
-            newsItem.content || null,
+            finalSummary || null,
+            finalContent || null,
             newsItem.image_url || null,
             categorySlug || 'gundem',
             categoryId || null,
             newsItem.original_url || null,
             newsItem.source || 'BOT',
-            newsItem.author || null,
+            author || null,
             shouldPublish ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null,
             true, // is_active
-            newsItem.title || null, // seo_title
-            newsItem.summary || null, // seo_description
-            newsItem.keywords || '' // seo_keywords
+            seoTitle || null,
+            seoDescription || null,
+            seoKeywords || '',
+            titleEn || null,
+            summaryEn || null,
+            contentEn || null,
+            aiModel
         ];
 
         const [result] = await pool.execute(query, params);

@@ -150,4 +150,6 @@ Frontend ve Backend koordinasyonu kapsamında botun ürettiği verilerin doğrul
 ## 🛠️ Gemini & Veritabanı Senkronizasyonu (10.04.2026)
 - **DB Şifre Onarımı:** Botun veritabanına bağlanmasını engelleyen şifre uyumsuzluğu giderildi, backend ile tam uyumlu hale getirildi.
 - **Gemini Stabilizasyonu:** Backend AI servisinde yapılan 4 saniyelik "throttle" güncellemesi ile Gemini Free Tier kotasının (15 RPM) aşılması engellendi. Bot artık hata almadan Gemini üzerinden özgünleştirme yapabiliyor.
+- **Merkezi Yönetim:** AI API anahtarları `.env` dosyasından temizlendi. Artık hem Gemini hem de Groq anahtarları sadece Admin Paneli üzerinden yönetilmektedir.
+
 

@@ -108,7 +108,7 @@ Sunucu restorasyonu sırasında botun stabilitesini ve verimliliğini artırmak 
 
 ### 2. Performans ve Sunucu Dostu Çalışma (Economic Mode)
 - **Haber Sınırı:** Her bot döngüsünde (15 dk) işlenen maksimum haber sayısı **10** ile sınırlandırıldı. Bu, sunucunun CPU ve RAM yükünü stabilize eder.
-- **AI Gecikmesi (Throttling):** AI rewrite süreçleri arasına **5.5 saniye** sabit gecikme eklendi. Bu hem AI provider (Gemini/Groq) limitlerini aşmamayı hem de sunucunun nefes almasını sağlar.
+- **AI Gecikmesi (Throttling):** AI rewrite süreçleri arasına **4 saniye** (backend üzerinden) sabit gecikme eklendi. Bu hem AI provider (Gemini/Groq) limitlerini aşmamayı hem de sunucunun nefes almasını sağlar.
 
 ### 3. Medya ve Network
 - **Alt Kategorizasyon:** Bot tarafından indirilen medya dosyaları artık `/uploads` altında `news`, `gallery`, `video` gibi alt klasörlere otomatik olarak dağıtılıyor.
@@ -144,3 +144,10 @@ Frontend ve Backend koordinasyonu kapsamında botun ürettiği verilerin doğrul
 - **Telegram URL Onarımı:** Facebook gibi Telegram'ın API (sendPhoto) servisine de relative path (`/uploads/...`) yerine tam path (absolute URL) ulaştırılacak şekilde `social.js` algoritması değiştirildi.
 - **Sequential Block Crash Koruması:** Eskiden bir haberde resim yoksa Telegram hata fırlatıp JavaScript akışını kırıyordu. Bu sebeple zincirleme olarak Facebook paylaşımları da iptal oluyordu.
 - **Fail-safe Yöntemler:** Telegram ve Facebook için ayrı ayrı `try-catch` blokları (hata izolasyonu) eklendi. Ayrıca fotoğrafsız haberlerin Telegram'a sorunsuz şekilde gitmesi için `sendMessage` (yazılı mesaj) fallback mimarisi eklendi. Artık bir platformdaki arıza, diğer platformdaki paylaşımı sabote etmiyor.
+
+---
+
+## 🛠️ Gemini & Veritabanı Senkronizasyonu (10.04.2026)
+- **DB Şifre Onarımı:** Botun veritabanına bağlanmasını engelleyen şifre uyumsuzluğu giderildi, backend ile tam uyumlu hale getirildi.
+- **Gemini Stabilizasyonu:** Backend AI servisinde yapılan 4 saniyelik "throttle" güncellemesi ile Gemini Free Tier kotasının (15 RPM) aşılması engellendi. Bot artık hata almadan Gemini üzerinden özgünleştirme yapabiliyor.
+

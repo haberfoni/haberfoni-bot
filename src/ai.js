@@ -19,6 +19,7 @@ export async function rewriteNews(title, summary, content) {
         return null;
     }
 
+    // Kota tasarrufu icin Ingilizce ceviri istemiyoruz, Google Translate yapacak.
     const prompt = `Lütfen aşağıdaki haberi, profesyonel bir haber editörü gibi davranarak, SEO kurallarına uygun, ilgi çekici ve özgün bir şekilde yeniden yaz. 
     Haberin anlamını bozma ama cümleleri tamamen değiştir.
 
@@ -33,10 +34,7 @@ export async function rewriteNews(title, summary, content) {
       "content": "Yeni İçerik (HTML formatında)",
       "seo_title": "SEO Başlığı",
       "seo_description": "SEO Açıklaması",
-      "seo_keywords": "keyword1, keyword2, keyword3",
-      "title_en": "English Title",
-      "summary_en": "English Summary",
-      "content_en": "English Content"
+      "seo_keywords": "keyword1, keyword2, keyword3"
     }`;
 
     // Try Gemini First
@@ -58,7 +56,6 @@ export async function rewriteNews(title, summary, content) {
             }
         } catch (error) {
             console.error('[AI] Gemini Error:', error.response?.data || error.message);
-            // Fallback to Groq handled below
         }
     }
 
@@ -87,4 +84,43 @@ export async function rewriteNews(title, summary, content) {
     }
 
     return null;
+}
+
+/**
+ * Ücretsiz Google Translate Servisi
+ * AI kotasını harcamaz.
+ */
+export async function translateFree(text, targetLanguage = 'en') {
+    if (!text) return '';
+    try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLanguage}&dt=t&q=${encodeURIComponent(text)}`;
+        const response = await axios.get(url, { timeout: 10000 });
+        if (response.data && response.data[0]) {
+            return response.data[0].map(part => part[0]).join('');
+        }
+        return text;
+    } catch (error) {
+        console.warn('[TRANSLATE] Free translation failed:', error.message);
+        return text;
+    }
+}
+
+/**
+ * HTML yapısını bozmadan çeviri yapar
+ */
+export async function translateHtmlFree(html, targetLanguage = 'en') {
+    if (!html) return '';
+    try {
+        const paragraphs = html.split(/<\/p>/i);
+        const translatedParagraphs = await Promise.all(paragraphs.map(async p => {
+            if (!p.trim()) return '';
+            const cleanText = p.replace(/<[^>]*>/g, '').trim();
+            if (!cleanText) return p + '</p>';
+            const translatedText = await translateFree(cleanText, targetLanguage);
+            return `<p>${translatedText}</p>`;
+        }));
+        return translatedParagraphs.join('');
+    } catch (error) {
+        return html;
+    }
 }

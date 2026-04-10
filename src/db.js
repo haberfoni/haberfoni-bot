@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { rewriteNews } from './ai.js';
+import { rewriteNews, translateFree, translateHtmlFree } from './ai.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -225,6 +225,19 @@ export async function saveNews(newsItem) {
                 console.log(`[AI] SUCCESS: Rewritten with ${aiModel}`);
             } else {
                 console.warn(`[AI] FAILED or SKIPPED for: ${newsItem.title}`);
+            }
+        }
+
+        // 3.6 Free Translation for English (to save AI quota)
+        if (settings && settings.use_free_translate && !titleEn) {
+            console.log(`[TRANSLATE] Starting free translation for: ${finalTitle}`);
+            try {
+                titleEn = await translateFree(finalTitle, 'en');
+                summaryEn = await translateFree(finalSummary, 'en');
+                contentEn = await translateHtmlFree(finalContent, 'en');
+                console.log(`[TRANSLATE] Success.`);
+            } catch (e) {
+                console.warn(`[TRANSLATE] Error: ${e.message}`);
             }
         }
 
